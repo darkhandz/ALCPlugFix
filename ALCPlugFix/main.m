@@ -41,21 +41,6 @@
 @interface ALCPlugFix : NSObject <DaemonProtocol>
 @end;
 @implementation ALCPlugFix
-- (id)init
-{
-    self = [super init];
-    if (self) {
-        // Do here what you needs to be done to start things
-    }
-    return self;
-}
-
-
-- (void)dealloc
-{
-    // Do here what needs to be done to shut things down
-    //[super dealloc];
-}
 
 - (void)performWork
 {
@@ -79,6 +64,13 @@ void sigHandler(int signo)
         case SIGTERM: keepRunning = FALSE; break; // SIGTERM means we must quit
         default: break;
     }
+}
+
+void sendFixCommand(){
+    //for ALC298, take from  https://github.com/RehabMan/EAPD-Codec-Commander/blob/master/SSDT-ALC298.dsl
+    [@"hda-verb 0x18 SET_PIN_WIDGET_CONTROL 0x22" runAsCommand];
+    [@"hda-verb 0x1a SET_PIN_WIDGET_CONTROL 0x23" runAsCommand];
+    [@"hda-verb 0x21 SET_UNSOLICITED_ENABLE 0x83" runAsCommand];
 }
 
 int main(int argc, const char * argv[]) {
@@ -106,8 +98,7 @@ int main(int argc, const char * argv[]) {
         sourceAddr.mScope = kAudioDevicePropertyScopeOutput;
         sourceAddr.mElement = kAudioObjectPropertyElementMaster;
 
-        NSString *output1 = [@"hda-verb 0x18 SET_PIN_WIDGET_CONTROL 0x20" runAsCommand];
-        NSString *output2 = [@"hda-verb 0x1a SET_PIN_WIDGET_CONTROL 0x20" runAsCommand];
+        sendFixCommand();
 
         AudioObjectAddPropertyListenerBlock(defaultDevice, &sourceAddr, dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(UInt32 inNumberAddresses, const AudioObjectPropertyAddress * inAddresses) {
 
@@ -117,13 +108,12 @@ int main(int argc, const char * argv[]) {
             if (bDataSourceId == 'ispk') {
                 // Recognized as internal speakers
                 NSLog(@"Headphones removed! Fixing!");
-                NSString *output1 = [@"hda-verb 0x18 SET_PIN_WIDGET_CONTROL 0x20" runAsCommand];
-                NSString *output2 = [@"hda-verb 0x1a SET_PIN_WIDGET_CONTROL 0x20" runAsCommand];
+                sendFixCommand();
+                
             } else if (bDataSourceId == 'hdpn') {
                 // Recognized as headphones
                 NSLog(@"Headphones inserted! Fixing!");
-                NSString *output1 = [@"hda-verb 0x18 SET_PIN_WIDGET_CONTROL 0x20" runAsCommand];
-                NSString *output2 = [@"hda-verb 0x1a SET_PIN_WIDGET_CONTROL 0x20" runAsCommand];
+                sendFixCommand();
             }
         });
 
